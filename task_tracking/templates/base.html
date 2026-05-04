@@ -1,0 +1,24 @@
+{% load static %}
+{% load django_bootstrap5 %}
+
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    {% bootstrap_css %}
+    <link rel="icon" href="{% static 'img/logo.png' %}" type="image">
+    <title>TaskTracker</title>
+  </head>
+  <body>
+    {% include "includes/header.html" %}
+
+    <main>
+      <div class="container">
+        {% block content %}
+          Ничего нет. Что-то не так :(
+        {% endblock %}
+      </div>
+    </main>
+
+    {% include "includes/footer.html" %}
+  </body>
+</html>

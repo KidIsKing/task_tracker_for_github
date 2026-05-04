@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h1>Все задачи</h1>
+  
+  <!-- Форма фильтрации (опционально) -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" class="row g-3">
+        <div class="col-md-3">
+          <label for="status" class="form-label">Статус</label>
+          <select name="status" id="status" class="form-select">
+            <option value="">Все</option>
+            <option value="NEW">Новая</option>
+            <option value="IN_PROGRESS">В работе</option>
+            <option value="DONE">Выполнена</option>
+            <option value="CLOSED">Закрыта</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="priority" class="form-label">Приоритет</label>
+          <select name="priority" id="priority" class="form-select">
+            <option value="">Все</option>
+            <option value="LOW">Низкий</option>
+            <option value="MEDIUM">Средний</option>
+            <option value="HIGH">Высокий</option>
+            <option value="CRITICAL">Критический</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="assignee" class="form-label">Исполнитель</label>
+          <input type="text" name="assignee" id="assignee" class="form-control" placeholder="username">
+        </div>
+        <div class="col-md-3 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary">Применить фильтр</button>
+          <a href="{% url 'tasks:task_list' %}" class="btn btn-secondary ms-2">Сбросить</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if page_obj %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      {% for task in page_obj %}
+        <div class="col">
+          <div class="card h-100 
+            {% if task.status == 'DONE' %}bg-light
+            {% elif task.priority == 'HIGH' or task.priority == 'CRITICAL' %}border-danger border-2{% endif %}">
+            <div class="card-header">
+              <span class="fw-bold">{{ task.title }}</span><br>
+              <small>
+                Статус: {{ task.get_status_display }} | 
+                Приоритет: {{ task.get_priority_display }}
+              </small>
+            </div>
+            <div class="card-body">
+              <p><strong>Проект:</strong> {{ task.project.name }}</p>
+              <p><strong>Автор:</strong> {{ task.author.username }}</p>
+              <p><strong>Исполнитель:</strong> 
+                {% if task.assignee %}{{ task.assignee.username }}{% else %}не назначен{% endif %}
+              </p>
+              <p class="card-text">{{ task.description|truncatewords:10 }}</p>
+              {% if task.deadline %}
+                <p><strong>Дедлайн:</strong> {{ task.deadline|date:"d.m.Y H:i" }}</p>
+              {% endif %}
+              <a href="{% url 'tasks:task_detail' task.id %}" class="btn btn-sm btn-outline-primary">
+                Подробнее
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>Задач пока нет.</p>
+  {% endif %}
+
+  {% include "includes/paginator.html" %}
+{% endblock %}

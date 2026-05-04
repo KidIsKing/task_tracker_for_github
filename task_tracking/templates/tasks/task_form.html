@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load django_bootstrap5 %}
+
+{% block content %}
+  <h1>{% if form.instance.pk %}Редактировать задачу{% else %}Создать задачу{% endif %}</h1>
+  <div class="col d-flex justify-content-center">
+    <div class="card" style="width: 40rem;">
+      <div class="card-header">
+        {% if form.instance.pk %}Редактирование{% else %}Новая задача{% endif %}
+      </div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          {% bootstrap_form form %}
+          {% bootstrap_button button_type="submit" content="Сохранить" %}
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

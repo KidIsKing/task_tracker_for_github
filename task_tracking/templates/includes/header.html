@@ -1,0 +1,63 @@
+{% load static %}
+
+<header>
+  <nav class="navbar navbar-light" style="background-color: lightskyblue">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'tasks:project_list' %}">
+        <img src="{% static 'img/logo.png' %}" width="30" height="30" class="d-inline-block align-top" alt="">
+        TaskTracker
+      </a>
+      {% with request.resolver_match.view_name as view_name %}
+        <ul class="nav nav-pills">
+          <li class="nav-item">
+            <a class="nav-link {% if view_name == 'tasks:project_list' %} text-white {% endif %}" 
+               href="{% url 'tasks:project_list' %}">
+              <span class="fw-bold">Проекты</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if view_name == 'tasks:task_list' %} text-white {% endif %}" 
+               href="{% url 'tasks:task_list' %}">
+              <span class="fw-bold">Все задачи</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if view_name == 'tasks:task_create' %} text-white {% endif %}" 
+               href="{% url 'tasks:task_create' %}">
+              <span class="fw-bold">Создать задачу</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% if view_name == 'tasks:project_create' %} text-white {% endif %}" 
+               href="{% url 'tasks:project_create' %}">
+              <span class="fw-bold">Создать проект</span>
+            </a>
+          </li>
+
+          {% if user.is_authenticated %}
+            <span class="navbar-text">Пользователь: <b>{{ user.username }}</b></span>
+            <li class="nav-item">
+              <a class="nav-link {% if view_name == 'password_change' %} active {% endif %}"
+                href="{% url 'password_change' %}">Изменить пароль</a>
+            </li>
+            <li class="nav-item">
+              <form method="post" action="{% url 'logout' %}" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="nav-link btn btn-link p-0 text-decoration-none">Выйти</button>
+              </form>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link {% if view_name == 'login' %} active {% endif %}" 
+                 href="{% url 'login' %}">Войти</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if view_name == 'registration' %} active {% endif %}" 
+                 href="{% url 'registration' %}">Регистрация</a>
+            </li>
+          {% endif %}
+        </ul>
+      {% endwith %}
+    </div>
+  </nav>
+</header>
