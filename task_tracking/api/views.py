@@ -6,8 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
-from tasks.models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from tasks.models import Project, Status, Task, Comment
+from .serializers import ProjectSerializer, StatusSerializer, TaskSerializer, CommentSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
 
 
@@ -81,6 +81,13 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response({"status": "Пользователь удалён"})
 
 
+class StatusViewSet(viewsets.ModelViewSet):
+    """Класс для управления статусами для задач."""
+    queryset = Status.objects.all()
+    serializer_class = StatusSerializer
+    permission_classes = (IsAuthenticated,)
+
+
 class TaskViewSet(viewsets.ModelViewSet):
     """Класс для управления задачами."""
 
@@ -116,25 +123,6 @@ class TaskViewSet(viewsets.ModelViewSet):
                 IsAssigneeOrAuthor | IsProjectOwner,
             )
         return super().get_permissions()
-    
-    @action(detail=False, methods=["get"])
-    def by_status(self, request):
-        """Вернуть задачи, сгруппированные по статусу."""
-        task_list = self.get_queryset()
-
-        groups = {}
-        for task in task_list:
-            status = task.status
-            if status not in groups:
-                groups[status] = []
-            groups[status].append(task)
-        
-        result = {}
-        for status, tasks in groups.items():
-            serializer = TaskSerializer(tasks, many=True, context={'request': request})
-            result[status] = serializer.data
-        
-        return Response(result)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
