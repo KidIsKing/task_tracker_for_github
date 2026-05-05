@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from tasks.models import Project, Status, Task, Comment
+from tasks.models import Project, Task, Comment
 
 User = get_user_model()
 
@@ -43,13 +43,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "owner")
 
 
-class StatusSerializer(serializers.ModelSerializer):
-    """Сериализатор для стусов задач."""
-    class Meta:
-        model = Status
-        fields = ("id", "title")
-
-
 class TaskSerializer(serializers.ModelSerializer):
     """Сериализатор для задач."""
 
@@ -65,13 +58,6 @@ class TaskSerializer(serializers.ModelSerializer):
         queryset=Project.objects.all(), write_only=True, source="project"
     )
     project = ProjectSerializer(read_only=True)
-    status = StatusSerializer(read_only=True)
-    status_id = serializers.PrimaryKeyRelatedField(
-        queryset=Status.objects.all(),
-        write_only=True,
-        source="status",
-        allow_null=True,
-    )
 
     class Meta:
         model = Task
@@ -88,8 +74,6 @@ class TaskSerializer(serializers.ModelSerializer):
             "assignee_id",
             "project_id",
             "project",
-            "status",
-            "status_id",
         )
         read_only_fields = ("id", "created_at", "author")
 
