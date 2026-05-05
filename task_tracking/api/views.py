@@ -116,6 +116,25 @@ class TaskViewSet(viewsets.ModelViewSet):
                 IsAssigneeOrAuthor | IsProjectOwner,
             )
         return super().get_permissions()
+    
+    @action(detail=False, methods=["get"])
+    def by_status(self, request):
+        """Вернуть задачи, сгруппированные по статусу."""
+        task_list = self.get_queryset()
+
+        groups = {}
+        for task in task_list:
+            status = task.status
+            if status not in groups:
+                groups[status] = []
+            groups[status].append(task)
+        
+        result = {}
+        for status, tasks in groups.items():
+            serializer = TaskSerializer(tasks, many=True, context={'request': request})
+            result[status] = serializer.data
+        
+        return Response(result)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
