@@ -6,9 +6,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
-from django.utils import timezone
-from django.db.models import Count, Max
-
 from tasks.models import Project, Task, Comment
 from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
@@ -82,81 +79,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         project.members.remove(user)
         return Response({"status": "Пользователь удалён"})
-    
-    @action(detail=True, methods=['get'], url_path='report')
-    def report(self, request, pk=None):
-        """
-        Кастомный эндпоинт для получения отчёта по проекту.
-        Доступен по URL: /api/projects/{id}/report/
-        """
-        
-        # 1. Получаем объект проекта по его ID (передан в URL)
-        #    self.get_object() автоматически проверяет права доступа
-        project = self.get_object()
-        
-        # 2. Получаем все задачи, принадлежащие этому проекту
-        #    Это QuerySet (набор задач) – мы будем его фильтровать и агрегировать
-        tasks = project.tasks.all()
-        
-        # ------------------------------------------------------------------
-        # 3. Общее количество задач в проекте
-        #    count() выполняет SQL запрос SELECT COUNT(*) FROM ...
-        total_tasks = tasks.count()
-        
-        # 4. Текущее время с учётом часового пояса (из настроек TIME_ZONE)
-        #    Нужно для сравнения с дедлайнами задач
-        now = timezone.now()
-        
-        # 5. Количество просроченных задач
-        #    Условия:
-        #    - deadline меньше текущего момента (задача уже должна быть выполнена)
-        #    - статус НЕ равен 'DONE' и НЕ равен 'CLOSED' (т.е. задача ещё не завершена)
-        #    filter(deadline__lt=now)  – отбираем задачи, у которых deadline < now
-        #    exclude(status__in=['DONE','CLOSED']) – исключаем задачи с такими статусами
-        #    count() – считаем количество
-        bad_deadline_tasks = tasks.filter(
-            deadline__lt=now
-        ).exclude(status__in=['DONE', 'CLOSED']).count()
-        
-        # ------------------------------------------------------------------
-        # 6. Распределение задач по исполнителям (assignee)
-        #    - values('assignee__username') – группируем по имени пользователя-исполнителя
-        #      (если исполнитель не назначен, assignee__username будет None)
-        #    - annotate(count=Count('id')) – добавляем к каждой группе поле count,
-        #      равное количеству задач в этой группе
-        #    - order_by('-count') – сортируем группы по убыванию количества задач
-        distribution = tasks.values('assignee__username').annotate(
-            count=Count('id')
-        ).order_by('-count')
-        
-        # 7. Преобразуем результат в удобный для JSON список словарей
-        #    Для каждого элемента из distribution:
-        #    - если assignee__username равно None, заменяем на строку "Не назначен"
-        #    - tasks_count – это количество задач для этого исполнителя
-        distribution_list = [
-            {"assignee": item['assignee__username'] or "Не назначен", 
-             "tasks_count": item['count']}
-            for item in distribution
-        ]
-        
-        # ------------------------------------------------------------------
-        # 8. Последний дедлайн среди всех задач проекта
-        #    aggregate(Max('deadline')) – вычисляет максимальное значение поля deadline
-        #    результат – словарь вида {'deadline__max': дата или None}
-        last_deadline = tasks.aggregate(Max('deadline'))['deadline__max']
-        
-        # 9. Формируем словарь с отчётными данными
-        report_data = {
-            "project_id": project.id,                 # ID проекта
-            "project_name": project.name,             # название проекта
-            "total_tasks": total_tasks,               # всего задач
-            "overdue_tasks": bad_deadline_tasks,           # просроченных задач
-            "distribution_by_assignee": distribution_list,  # распределение по исполнителям
-            "last_deadline": last_deadline,           # последний дедлайн (или null)
-        }
-        
-        # 10. Возвращаем ответ в формате JSON (DRF сам преобразует словарь в JSON)
-        return Response(report_data)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
@@ -194,6 +116,14 @@ class TaskViewSet(viewsets.ModelViewSet):
                 IsAssigneeOrAuthor | IsProjectOwner,
             )
         return super().get_permissions()
+    
+    @action(detail=True, methods=['get'])
+    def subtasks(self, request, pk=None):
+        """Вернуть все подзадачи текущей задачи."""
+        task = self.get_object()
+        subtasks = task.subtasks.all()
+        serializer = self.get_serializer(subtasks, many=True)
+        return Response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
