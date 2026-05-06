@@ -101,14 +101,6 @@ class Task(models.Model):
         on_delete=models.CASCADE,
         related_name='tasks'
     )
-    parent = models.ForeignKey(
-        'self',  # на саму себя ссылается
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='subtasks',
-        verbose_name="Родительская задача"
-    )
 
     class Meta:
         verbose_name = "Задача"
@@ -146,3 +138,23 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.text}"
+
+
+class Notifications(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name="Пользователь",
+        related_name='users'
+    )
+    text = models.CharField(
+        max_length=500,
+        verbose_name="Текст"
+    )
+
+    class Meta:
+        verbose_name = "Уведомление"
+        verbose_name_plural = "Уведомления"
+    
+    def __str__(self):
+        return f"{self.user}: {self.text}"

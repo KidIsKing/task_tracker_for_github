@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from tasks.models import Project, Task, Comment
+from tasks.models import Project, Task, Comment, Notifications
 
 User = get_user_model()
 
@@ -59,21 +59,6 @@ class TaskSerializer(serializers.ModelSerializer):
     )
     project = ProjectSerializer(read_only=True)
 
-    # Для чтения: показываем родителя (кратко)
-    parent = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    # Для записи: можно указать ID родительской задачи
-    parent_id = serializers.PrimaryKeyRelatedField(
-        queryset=Task.objects.all(),
-        write_only=True,
-        required=False,
-        allow_null=True,
-        source='parent'
-    )
-
-    # Для чтения: список подзадач (ID)
-    subtasks = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
-
     class Meta:
         model = Task
         fields = (
@@ -89,9 +74,6 @@ class TaskSerializer(serializers.ModelSerializer):
             "assignee_id",
             "project_id",
             "project",
-            "parent",
-            "parent_id",
-            "subtasks"
         )
         read_only_fields = ("id", "created_at", "author")
 
@@ -109,3 +91,9 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ("id", "text", "created_at", "author", "task_id", "task")
         read_only_fields = ("id", "created_at", "author")
+
+
+class NotificationsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notifications
+        fields = ("id", "user", "text")

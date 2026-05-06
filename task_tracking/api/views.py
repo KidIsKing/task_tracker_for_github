@@ -6,8 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
-from tasks.models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from tasks.models import Project, Task, Comment, Notifications
+from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer, NotificationsSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
 
 
@@ -108,6 +108,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         if self.request.user not in task.project.members.all():
             task.project.members.add(self.request.user)
 
+        if task.assignee:
+            Notifications.objects.create(
+                user=task.assignee,
+                text=f"Вам назначена задача «{task.title}» в проекте {task.project.name}. Автор: {task.author.username}"
+            )
+
     def get_permissions(self):
         """Для обновления и удаления особые права."""
         if self.action in ["update", "partial_update", "destroy"]:
@@ -116,14 +122,6 @@ class TaskViewSet(viewsets.ModelViewSet):
                 IsAssigneeOrAuthor | IsProjectOwner,
             )
         return super().get_permissions()
-    
-    @action(detail=True, methods=['get'])
-    def subtasks(self, request, pk=None):
-        """Вернуть все подзадачи текущей задачи."""
-        task = self.get_object()
-        subtasks = task.subtasks.all()
-        serializer = self.get_serializer(subtasks, many=True)
-        return Response(serializer.data)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -145,3 +143,12 @@ class CommentViewSet(viewsets.ModelViewSet):
         if self.action == "destroy":
             self.permission_classes = (IsAuthenticated, IsProjectOwner)
         return super().get_permissions()
+
+
+class NotificationsViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationsSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        # Пользователь видит только свои уведомления
+        return Notifications.objects.filter(user=self.request.user)
