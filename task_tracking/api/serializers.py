@@ -43,6 +43,27 @@ class ProjectSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "owner")
 
 
+class TaskBaseSerializer(serializers.ModelSerializer):
+    """Базовый сериализатор для задач, используемый в других сериализаторах."""
+
+    class Meta:
+        model = Task
+        fields = (
+            "id",
+            "title",
+            "description",
+            "priority",
+            "status",
+            "deadline",
+            "created_at",
+            "author",
+            "assignee",
+            "project",
+            "parent",
+        )
+        read_only_fields = ("id", "created_at", "author")
+
+
 class TaskSerializer(serializers.ModelSerializer):
     """Сериализатор для задач."""
 
@@ -58,6 +79,15 @@ class TaskSerializer(serializers.ModelSerializer):
         queryset=Project.objects.all(), write_only=True, source="project"
     )
     project = ProjectSerializer(read_only=True)
+    parent = TaskBaseSerializer(read_only=True)
+    subtasks = TaskBaseSerializer(many=True, read_only=True)
+
+    parent_id = serializers.PrimaryKeyRelatedField(
+        queryset=Task.objects.all(),
+        write_only=True,
+        source="parent",
+        allow_null=True,
+    )
 
     class Meta:
         model = Task
@@ -74,6 +104,9 @@ class TaskSerializer(serializers.ModelSerializer):
             "assignee_id",
             "project_id",
             "project",
+            "parent",
+            "parent_id",
+            "subtasks",
         )
         read_only_fields = ("id", "created_at", "author")
 
