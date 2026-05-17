@@ -80,6 +80,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project.members.remove(user)
         return Response({"status": "Пользователь удалён"})
 
+    @action(detail=True, methods=["get"])
+    def report(self, request, pk=None):
+        project = self.get_queryset()
+        tasks = project.tasks.all()
+
+        total_tasks = tasks.count()
+
+        
+
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     """Класс для управления задачами."""
