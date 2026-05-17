@@ -8,12 +8,6 @@ PRIORITY_CHOICES = [
     ('HIGH', 'Высокий'),
     ('CRITICAL', 'Критический'),
 ]
-STATUS_CHOICES = [
-    ('NEW', 'Новая'),
-    ('IN_PROGRESS', 'В работе'),
-    ('DONE', 'Выполнена'),
-    ('CLOSED', 'Закрыта'),
-]
 
 
 User = get_user_model()
@@ -52,6 +46,20 @@ class Project(models.Model):
         return f"{self.name}"
 
 
+class Status(models.Model):
+    title = models.CharField(
+        max_length=50,
+        verbose_name="Название"
+    )
+
+    class Meta:
+        verbose_name = "Статус"
+        verbose_name_plural = "Статусы"
+
+    def __str__(self):
+        return f"{self.title}"
+
+
 class Task(models.Model):
     title = models.CharField(
         max_length=200,
@@ -66,10 +74,11 @@ class Task(models.Model):
         default="MEDIUM",
         verbose_name="Приоритет"
     )
-    status = models.CharField(
-        choices=STATUS_CHOICES,
-        default="NEW",
-        verbose_name="Статус"
+    status = models.ForeignKey(
+        Status,
+        on_delete=models.CASCADE,
+        verbose_name="Статус",
+        related_name='status_tasks'
     )
     deadline = models.DateTimeField(
         verbose_name="Дедлайн",

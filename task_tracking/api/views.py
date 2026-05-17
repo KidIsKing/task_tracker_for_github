@@ -7,7 +7,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
 from tasks.models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer, StatusSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
 
 
@@ -79,6 +79,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         project.members.remove(user)
         return Response({"status": "Пользователь удалён"})
+
+
+class StatusViewSet(viewsets.ModelViewSet):
+    serializer_class = StatusSerializer
+    permission_classes = (IsAuthenticated,)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
