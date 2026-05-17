@@ -6,6 +6,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
+from django.utils import timezone
+from django.db.models import Count, Max
+
 from tasks.models import Project, Task, Comment
 from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
@@ -82,13 +85,40 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def report(self, request, pk=None):
-        project = self.get_queryset()
+        project = self.get_object()
         tasks = project.tasks.all()
 
-        total_tasks = tasks.count()
+        total_tasks = tasks.count()  # количество задач
 
-        
+        now = timezone.now()
 
+        # Количество не выполненных в срок задач
+        bad_deadline_tasks = tasks.filter(
+            deadline__lt=now,
+        ).exclude(status__in=["DONE", "CLOSED"]).count()
+
+        # Распределение задач по участникам проекта
+        distribution = tasks.values("assignee__username").annotate(
+            count=Count("id")
+        )
+
+        distribution_list = [{
+            "assignee": item["assignee__username"] or "Не назначен",
+            "tasks_count": item["count"]
+        } for item in distribution]
+
+        # Последняя дата дедлайна
+        last_deadline = tasks.aggregate(Max("deadline"))["deadline__max"]
+
+        report_data = {
+            "project_id": project.id,
+            "project_name": project.name,
+            "total_tasks": total_tasks,
+            "bad_deadline_tasks": bad_deadline_tasks,
+            "distribution_list": distribution_list,
+            "last_deadline": last_deadline
+        }
+        return Response(report_data)
 
 
 class TaskViewSet(viewsets.ModelViewSet):
