@@ -88,35 +88,54 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         tasks = project.tasks.all()
 
-        total_tasks = tasks.count()  # количество задач
-
         now = timezone.now()
 
-        # Количество не выполненных в срок задач
-        bad_deadline_tasks = tasks.filter(
-            deadline__lt=now,
-        ).exclude(status__in=["DONE", "CLOSED"]).count()
+        # Все задачи (сериализованные)
+        all_tasks_qs = tasks.select_related('assignee', 'author').order_by('-created_at')
+        all_tasks_data = TaskSerializer(all_tasks_qs, many=True).data
 
-        # Распределение задач по участникам проекта
+        # Просроченные и невыполненные задачи
+        bad_deadline_qs = tasks.filter(
+            deadline__lt=now
+        ).exclude(
+            status__in=["DONE", "CLOSED"]
+        ).select_related('assignee', 'author').order_by('deadline')
+        
+        bad_deadline_data = TaskSerializer(bad_deadline_qs, many=True).data
+
+        # Распределение задач по исполнителям (с деталями задач)
         distribution = tasks.values("assignee__username").annotate(
             count=Count("id")
-        )
+        ).order_by("assignee__username")
 
-        distribution_list = [{
-            "assignee": item["assignee__username"] or "Не назначен",
-            "tasks_count": item["count"]
-        } for item in distribution]
+        distribution_list = []
+        for item in distribution:
+            username = item["assignee__username"]
+            
+            # Получаем задачи конкретного исполнителя
+            if username:
+                user_tasks = tasks.filter(assignee__username=username)
+            else:
+                user_tasks = tasks.filter(assignee__isnull=True)
+                
+            distribution_list.append({
+                "assignee": username or "Не назначен",
+                "tasks_count": item["count"],
+                "tasks": TaskSerializer(user_tasks, many=True).data  # ← список задач
+            })
 
-        # Последняя дата дедлайна
+        # Последний дедлайн
         last_deadline = tasks.aggregate(Max("deadline"))["deadline__max"]
 
         report_data = {
             "project_id": project.id,
             "project_name": project.name,
-            "total_tasks": total_tasks,
-            "bad_deadline_tasks": bad_deadline_tasks,
+            "total_tasks": len(all_tasks_data),
+            "bad_deadline_tasks": len(bad_deadline_data),
+            "bad_deadline_tasks_list": bad_deadline_data,
+            "all_tasks": all_tasks_data,
             "distribution_list": distribution_list,
-            "last_deadline": last_deadline
+            "last_deadline": last_deadline,
         }
         return Response(report_data)
 
