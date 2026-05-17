@@ -117,6 +117,16 @@ class TaskViewSet(viewsets.ModelViewSet):
             )
         return super().get_permissions()
 
+    @action(detail=False, methods=["get"])
+    def by_status(self, request):
+        tasks = self.get_queryset()
+        self.permission_classes = (IsAuthenticated,)
+
+        groups = {}
+        for task in tasks:
+            groups.setdefault(task.status, []).append(TaskSerializer(task).data)
+        return Response(groups)
+
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Класс для управления комментариями."""
