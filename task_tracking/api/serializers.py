@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from tasks.models import Project, Task, Comment
+from tasks.models import Project, Task, Comment, Notification
 
 User = get_user_model()
 
@@ -91,3 +91,12 @@ class CommentSerializer(serializers.ModelSerializer):
         model = Comment
         fields = ("id", "text", "created_at", "author", "task_id", "task")
         read_only_fields = ("id", "created_at", "author")
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ("id", "text", "user")
+        read_only_fields = ("id", "user")
