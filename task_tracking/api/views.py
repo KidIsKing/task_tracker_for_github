@@ -110,7 +110,7 @@ class TaskViewSet(viewsets.ModelViewSet):
 
         if task.assignee:
             Notification.objects.create(
-                user=task.user,
+                user=task.assignee,
                 text=f"Пользователю {task.assignee} в проекте {task.project.name} назначена задача {task.title}."
             )
 
@@ -148,3 +148,6 @@ class CommentViewSet(viewsets.ModelViewSet):
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Notification.objects.all()
