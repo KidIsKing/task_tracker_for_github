@@ -138,3 +138,46 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.text}"
+
+
+class TaskHistory(models.Model):
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name="history",
+        verbose_name="Задача"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        verbose_name="Кто изменил"
+    )
+    changed_fields = models.CharField(
+        max_length=100,
+        verbose_name="Поле"
+    )
+    old_value = models.CharField(
+        max_length=250,
+        null=True,
+        blank=True,
+        verbose_name="Было"
+    )
+    old_value = models.CharField(
+        max_length=250,
+        null=True,
+        blank=True,
+        verbose_name="Стало"
+    )
+    changed_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Время изменения"
+    )
+
+    class Meta:
+        ordering = ["-changed_at"]
+        verbose_name = "История изменения задачи"
+        verbose_name_plural = "История изменения задач"
+
+    def __str__(self):
+        return f"{self.task.title} - {self.changed_field}: {self.old_value} -> {self.new_value}"
