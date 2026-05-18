@@ -6,8 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
-from tasks.models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from tasks.models import Project, Task, Comment, TaskHistory
+from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer, TaskHistorySerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
 
 
@@ -116,6 +116,62 @@ class TaskViewSet(viewsets.ModelViewSet):
                 IsAssigneeOrAuthor | IsProjectOwner,
             )
         return super().get_permissions()
+
+    @action(detail=True, methods=["get"])
+    def history(self, request, pk=None):
+        """Получить историю изменений задачи."""
+        task = self.get_object()
+        history = task.history.all()
+        serializer = TaskHistorySerializer(history, many=True)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        old_status = instance.status
+        old_assignee = instance.assignee
+        old_priority = instance.priority
+
+        serailizer = self.get_serializer(instance, data=request.data, partial=partial)
+        serailizer.is_valid(raise_exception=True)
+        self.perform_update(serailizer)
+
+        new_instance = serailizer.instance
+        changes = []
+
+        if old_status != new_instance.status:
+            changes.append({
+                "field": "status",
+                "old": old_status,
+                "new": new_instance.status
+            })
+        if old_assignee != new_instance.assignee:
+            changes.append({
+                "field": "assignee",
+                "old": old_assignee if old_assignee else None,
+                "new": new_instance.assignee if new_instance.assignee else None
+            })
+        if old_priority != new_instance.priority:
+            changes.append({
+                "field": "priority",
+                "old": old_priority,
+                "new": new_instance.priority
+            })
+
+        for change in changes:
+            TaskHistory.objects.create(
+                task=new_instance,
+                user=request.user,
+                changed_fields=change["field"],
+                old_value=str(change["old"]),
+                new_value=str(change["new"])
+            )
+
+        return Response(serailizer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
+        return self.update(request, *args, **kwargs)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

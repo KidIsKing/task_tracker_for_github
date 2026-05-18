@@ -163,7 +163,7 @@ class TaskHistory(models.Model):
         blank=True,
         verbose_name="Было"
     )
-    old_value = models.CharField(
+    new_value = models.CharField(
         max_length=250,
         null=True,
         blank=True,
