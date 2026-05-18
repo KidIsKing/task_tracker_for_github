@@ -6,8 +6,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
 
-from tasks.models import Project, Task, Comment
-from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer
+from tasks.models import Project, Task, Comment, Notification
+from .serializers import ProjectSerializer, TaskSerializer, CommentSerializer, NotificationSerializer
 from .permissions import IsProjectMember, IsProjectOwner, IsAssigneeOrAuthor
 
 
@@ -108,6 +108,12 @@ class TaskViewSet(viewsets.ModelViewSet):
         if self.request.user not in task.project.members.all():
             task.project.members.add(self.request.user)
 
+        if task.assignee:
+            Notification.objects.create(
+                user=task.assignee,
+                text=f"Пользователю {task.assignee} в проекте {task.project.name} назначена задача {task.title}."
+            )
+
     def get_permissions(self):
         """Для обновления и удаления особые права."""
         if self.action in ["update", "partial_update", "destroy"]:
@@ -137,3 +143,11 @@ class CommentViewSet(viewsets.ModelViewSet):
         if self.action == "destroy":
             self.permission_classes = (IsAuthenticated, IsProjectOwner)
         return super().get_permissions()
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        return Notification.objects.all()

@@ -138,3 +138,23 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"{self.text}"
+
+
+class Notification(models.Model):
+    text = models.CharField(
+        max_length=500,
+        verbose_name="Текст"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        null=False,
+        verbose_name="Пользователь"
+    )
+
+    class Meta:
+        verbose_name = "Уведомление"
+        verbose_name_plural = "Уведомления"
+
+    def __str__(self):
+        return f"{self.text}"
