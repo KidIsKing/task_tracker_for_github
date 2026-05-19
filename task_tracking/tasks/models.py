@@ -101,6 +101,12 @@ class Task(models.Model):
         on_delete=models.CASCADE,
         related_name='tasks'
     )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
 
     class Meta:
         verbose_name = "Задача"
