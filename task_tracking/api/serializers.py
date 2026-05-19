@@ -87,6 +87,7 @@ class TaskSerializer(serializers.ModelSerializer):
         write_only=True,
         source="parent",
         allow_null=True,
+        required=False
     )
 
     class Meta:
